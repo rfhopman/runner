@@ -1,84 +1,97 @@
 import streamlit as st
 import time
 
-# --- APP CONFIG ---
-st.set_page_config(page_title="Runner Pro", layout="centered")
+# Set page to be wide enough for buttons but narrow for mobile feel
+st.set_page_config(page_title="RunDash", layout="centered")
 
-# --- STYLING (Mobile Optimization) ---
+# Custom CSS for high-visibility mobile buttons
 st.markdown("""
     <style>
-    .big-font { font-size:40px !important; font-weight: bold; color: #FF4B4B; }
-    .stat-box { background-color: #f0f2f6; padding: 20px; border-radius: 10px; text-align: center; }
+    div.stButton > button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #f0f2f6;
+    }
+    .main-clock {
+        font-size: 60px !important;
+        font-weight: 800;
+        text-align: center;
+        color: #00eb1b;
+        background-color: black;
+        border-radius: 10px;
+        padding: 10px;
+        font-family: monospace;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- INITIALIZING SESSION STATE ---
-# This ensures data isn't lost when the app reruns
-if 'start_time' not in st.session_state:
-    st.session_state.start_time = None
-if 'elapsed_time' not in st.session_state:
-    st.session_state.elapsed_time = 0.0
+# --- State Management ---
 if 'running' not in st.session_state:
     st.session_state.running = False
+if 'elapsed' not in st.session_state:
+    st.session_state.elapsed = 0.0
+if 'last_time' not in st.session_state:
+    st.session_state.last_time = 0.0
 if 'steps' not in st.session_state:
     st.session_state.steps = 0
-if 'distance' not in st.session_state:
-    st.session_state.distance = 0.0
+if 'km' not in st.session_state:
+    st.session_state.km = 0.0
 
-# --- LOGIC ---
-def format_time(seconds):
-    mins, secs = divmod(seconds, 60)
-    hours, mins = divmod(mins, 60)
-    return f"{int(hours):02}:{int(mins):02}:{int(secs):02}"
+# --- Timer Logic ---
+def format_time(s):
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    return f"{int(h):02}:{int(m):02}:{int(s):02}"
 
-# Update time if stopwatch is running
-if st.session_state.running:
-    current_now = time.time()
-    st.session_state.elapsed_time += current_now - st.session_state.last_check
-    st.session_state.last_check = current_now
-    # Mock data calculation: ~2 steps per second, ~8km/h pace
-    st.session_state.steps += 2 
-    st.session_state.distance += 0.002
-    time.sleep(0.1)
-    st.rerun()
+# --- UI Layout ---
+st.title("🏃 Mobile Runner")
 
-# --- UI LAYOUT ---
-st.title("🏃 Runner Stopwatch")
+# Big Clock Display
+st.markdown(f'<div class="main-clock">{format_time(st.session_state.elapsed)}</div>', unsafe_allow_html=True)
 
-# Display Stats
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Distance (KM)", f"{st.session_state.distance:.2f}")
-with col2:
-    st.metric("Steps", st.session_state.steps)
+# Stats Row
+col_a, col_b = st.columns(2)
+col_a.metric("Kilometers", f"{st.session_state.km:.2f} km")
+col_b.metric("Total Steps", st.session_state.steps)
 
-st.markdown(f'<p class="big-font">{format_time(st.session_state.elapsed_time)}</p>', unsafe_allow_html=True)
+st.write("---")
 
-# --- CONTROLS ---
-c1, c2, c3, c4 = st.columns(4)
+# Buttons in a single row (4 columns)
+btn_cols = st.columns(4)
 
-with c1:
-    if st.button("Start"):
-        if not st.session_state.running:
-            st.session_state.running = True
-            st.session_state.last_check = time.time()
-            st.rerun()
+with btn_cols[0]:
+    if st.button("▶️"):
+        st.session_state.running = True
+        st.session_state.last_time = time.time()
 
-with c2:
-    if st.button("Pause"):
+with btn_cols[1]:
+    if st.button("⏸️"):
         st.session_state.running = False
 
-with c3:
-    if st.button("Stop"):
+with btn_cols[2]:
+    if st.button("⏹️"):
         st.session_state.running = False
-        # Data is NOT reset here per your requirement
 
-with c4:
-    if st.button("Reset"):
+with btn_cols[3]:
+    if st.button("🔄"):
         st.session_state.running = False
-        st.session_state.elapsed_time = 0.0
+        st.session_state.elapsed = 0.0
         st.session_state.steps = 0
-        st.session_state.distance = 0.0
+        st.session_state.km = 0.0
         st.rerun()
 
-st.info("Note: To view this on your lock screen, use a browser that supports 'Add to Home Screen' (PWA) and keep the tab active.")
+# --- The "Engine" ---
+# This loop forces the app to update while 'running' is True
+if st.session_state.running:
+    now = time.time()
+    dt = now - st.session_state.last_time
+    st.session_state.elapsed += dt
+    st.session_state.last_time = now
+    
+    # Simple calculation for movement
+    st.session_state.steps += 1 # Mock step
+    st.session_state.km += 0.001 # Mock distance
+    
+    time.sleep(0.1) # Prevents over-taxing the processor
+    st.rerun()
