@@ -4,44 +4,35 @@ from streamlit_js_eval import get_geolocation
 
 st.set_page_config(page_title="RunDash", layout="centered")
 
-# --- THE "FLEX-FIT" FIX ---
+# --- Clean Mobile Styling ---
 st.markdown("""
     <style>
-    /* Force the container to be a single row that fits the screen width */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        width: 100% !important;
-        gap: 5px !important; /* Space between buttons */
+    /* High-visibility metrics */
+    .stMetric {
+        background-color: #1e1e1e;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #333;
     }
     
-    /* Make each column take up equal space without overflowing */
-    [data-testid="column"] {
-        flex: 1 !important;
-        min-width: 0 !important; /* Allows buttons to shrink to fit */
-    }
-    
-    /* Button Styling: slimmed down to prevent overflow */
+    /* Standard wide buttons for easy tapping while running */
     div.stButton > button {
         width: 100% !important;
-        height: 55px !important;
-        padding: 0px !important;
-        font-size: 20px !important;
-        border-radius: 8px !important;
-        background-color: #262730;
-        border: 1px solid #444;
+        height: 3.5em !important;
+        font-size: 18px !important;
+        border-radius: 10px !important;
+        margin-bottom: 5px;
     }
 
     .main-clock {
-        font-size: 55px !important;
+        font-size: 60px !important;
         font-weight: 800;
         text-align: center;
         color: #00eb1b;
         background-color: black;
-        border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 5px;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
         font-family: monospace;
     }
     </style>
@@ -77,7 +68,7 @@ if st.session_state.running and loc:
         a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
         c = 2 * asin(sqrt(a)) 
         km_moved = 6371 * c
-        if km_moved > 0.005:
+        if km_moved > 0.005: # 5 meter filter
             st.session_state.km += km_moved
     st.session_state.last_pos = curr_pos
 
@@ -89,27 +80,25 @@ m1, m2 = st.columns(2)
 m1.metric("KM", f"{st.session_state.km:.2f}")
 m2.metric("Steps", int(st.session_state.km * 1312))
 
-st.write("")
+st.write("---")
 
-# --- The 4-Button Row (Auto-Scaling) ---
-btn_cols = st.columns(4)
-with btn_cols[0]:
-    if st.button("▶️"):
-        st.session_state.running = True
-        st.session_state.last_time = time.time()
-with btn_cols[1]:
-    if st.button("⏸️"):
-        st.session_state.running = False
-with btn_cols[2]:
-    if st.button("⏹️"):
-        st.session_state.running = False
-with btn_cols[3]:
-    if st.button("🔄"):
-        st.session_state.running = False
-        st.session_state.elapsed = 0.0
-        st.session_state.km = 0.0
-        st.session_state.last_pos = None
-        st.rerun()
+# --- Vertical Buttons (Standard Mobile Flow) ---
+if st.button("▶️ START"):
+    st.session_state.running = True
+    st.session_state.last_time = time.time()
+
+if st.button("⏸️ PAUSE"):
+    st.session_state.running = False
+
+if st.button("⏹️ STOP"):
+    st.session_state.running = False
+
+if st.button("🔄 RESET DATA"):
+    st.session_state.running = False
+    st.session_state.elapsed = 0.0
+    st.session_state.km = 0.0
+    st.session_state.last_pos = None
+    st.rerun()
 
 # --- Engine ---
 if st.session_state.running:
