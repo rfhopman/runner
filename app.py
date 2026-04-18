@@ -4,21 +4,38 @@ from streamlit_js_eval import get_geolocation
 
 st.set_page_config(page_title="RunDash Pro", layout="centered")
 
-# Custom CSS for the "Locked Screen" look
+# --- THE FIX: Custom CSS to force columns to stay horizontal on mobile ---
 st.markdown("""
     <style>
+    /* Force columns to stay side-by-side on mobile */
+    [data-testid="column"] {
+        width: 25% !important;
+        flex: 1 1 25% !important;
+        min-width: 25% !important;
+    }
+    
+    /* Center the button text/emojis */
+    div.stButton > button {
+        width: 100%;
+        height: 3.5em;
+        font-size: 20px !important;
+        border-radius: 10px;
+        background-color: #262730;
+        color: white;
+        border: 1px solid #444;
+    }
+
     .main-clock {
-        font-size: 70px !important;
+        font-size: 65px !important;
         font-weight: 800;
         text-align: center;
         color: #00eb1b;
         background-color: black;
         border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        font-family: 'Courier New', monospace;
+        padding: 15px;
+        margin-bottom: 10px;
+        font-family: monospace;
     }
-    .stMetric { background-color: #1e1e1e; padding: 15px; border-radius: 10px; border: 1px solid #333; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -40,14 +57,11 @@ def format_time(s):
     return f"{int(h):02}:{int(m):02}:{int(s):02}"
 
 # --- GPS Tracking ---
-# This will trigger a "Allow Location" popup on your iPhone
 loc = get_geolocation()
 
 if st.session_state.running and loc:
     curr_pos = (loc['coords']['latitude'], loc['coords']['longitude'])
-    
     if st.session_state.last_pos:
-        # Simple distance math (Haversine approximation for small distances)
         from math import radians, cos, sin, asin, sqrt
         lat1, lon1 = map(radians, st.session_state.last_pos)
         lat2, lon2 = map(radians, curr_pos)
@@ -57,26 +71,27 @@ if st.session_state.running and loc:
         c = 2 * asin(sqrt(a)) 
         km_moved = 6371 * c
         
-        # Only add if moved more than 5 meters (to avoid GPS "jitter" while standing still)
+        # Jitter filter (ignore movement < 5 meters)
         if km_moved > 0.005:
             st.session_state.km += km_moved
-            
     st.session_state.last_pos = curr_pos
 
 # --- UI Layout ---
 st.markdown(f'<div class="main-clock">{format_time(st.session_state.elapsed)}</div>', unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
-col1.metric("Distance", f"{st.session_state.km:.2f} km")
-# Note: Step counting in browsers is highly restricted; 
-# we'll approximate 1300 steps per km for a "Real feel"
-steps = int(st.session_state.km * 1312) 
-col2.metric("Est. Steps", steps)
+# Metrics in 2 columns
+m_col1, m_col2 = st.columns(2)
+# We force metrics to stay side-by-side too
+with m_col1:
+    st.metric("Dist.", f"{st.session_state.km:.2f} km")
+with m_col2:
+    st.metric("Steps", int(st.session_state.km * 1312))
 
 st.write("")
 
-# Single row for all buttons
+# --- The 4-Button Row ---
 btn_cols = st.columns(4)
+
 with btn_cols[0]:
     if st.button("▶️"):
         st.session_state.running = True
@@ -100,5 +115,5 @@ if st.session_state.running:
     now = time.time()
     st.session_state.elapsed += now - st.session_state.last_time
     st.session_state.last_time = now
-    time.sleep(1) # Refresh every second
+    time.sleep(1) 
     st.rerun()
