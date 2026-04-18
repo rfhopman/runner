@@ -2,38 +2,43 @@ import streamlit as st
 import time
 from streamlit_js_eval import get_geolocation
 
-st.set_page_config(page_title="RunDash Pro", layout="centered")
+st.set_page_config(page_title="RunDash", layout="centered")
 
-# --- THE FIX: Custom CSS to force columns to stay horizontal on mobile ---
+# --- THE FORCE-ROW FIX ---
 st.markdown("""
     <style>
-    /* Force columns to stay side-by-side on mobile */
+    /* Force the column container to stay as a row on mobile */
     [data-testid="column"] {
         width: 25% !important;
         flex: 1 1 25% !important;
         min-width: 25% !important;
     }
     
-    /* Center the button text/emojis */
+    [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+
+    /* Style buttons to be big enough for thumbs but small enough for 1 row */
     div.stButton > button {
-        width: 100%;
-        height: 3.5em;
-        font-size: 20px !important;
-        border-radius: 10px;
+        width: 100% !important;
+        height: 60px !important;
+        padding: 0px !important;
+        font-size: 24px !important;
+        border-radius: 12px !important;
         background-color: #262730;
-        color: white;
-        border: 1px solid #444;
     }
 
     .main-clock {
-        font-size: 65px !important;
+        font-size: 60px !important;
         font-weight: 800;
         text-align: center;
         color: #00eb1b;
         background-color: black;
         border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 10px;
+        padding: 10px;
         font-family: monospace;
     }
     </style>
@@ -58,7 +63,6 @@ def format_time(s):
 
 # --- GPS Tracking ---
 loc = get_geolocation()
-
 if st.session_state.running and loc:
     curr_pos = (loc['coords']['latitude'], loc['coords']['longitude'])
     if st.session_state.last_pos:
@@ -70,8 +74,6 @@ if st.session_state.running and loc:
         a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
         c = 2 * asin(sqrt(a)) 
         km_moved = 6371 * c
-        
-        # Jitter filter (ignore movement < 5 meters)
         if km_moved > 0.005:
             st.session_state.km += km_moved
     st.session_state.last_pos = curr_pos
@@ -79,19 +81,15 @@ if st.session_state.running and loc:
 # --- UI Layout ---
 st.markdown(f'<div class="main-clock">{format_time(st.session_state.elapsed)}</div>', unsafe_allow_html=True)
 
-# Metrics in 2 columns
-m_col1, m_col2 = st.columns(2)
-# We force metrics to stay side-by-side too
-with m_col1:
-    st.metric("Dist.", f"{st.session_state.km:.2f} km")
-with m_col2:
-    st.metric("Steps", int(st.session_state.km * 1312))
+# Stats side-by-side
+stat_cols = st.columns(2)
+stat_cols[0].metric("KM", f"{st.session_state.km:.2f}")
+stat_cols[1].metric("Steps", int(st.session_state.km * 1312))
 
 st.write("")
 
-# --- The 4-Button Row ---
+# --- The 4-Button Row (Forced) ---
 btn_cols = st.columns(4)
-
 with btn_cols[0]:
     if st.button("▶️"):
         st.session_state.running = True
